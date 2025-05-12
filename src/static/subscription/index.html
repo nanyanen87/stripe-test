@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サブスクリプション - Stripe 検証サービス</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    h2 { color: #555; margin-top: 30px; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .plan {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    .plan h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .plan-description {
+      color: #666;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .plan-price {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .plan-interval {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .features {
+      list-style-type: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+    }
+    .features li {
+      padding: 5px 0;
+      position: relative;
+      padding-left: 25px;
+    }
+    .features li::before {
+      content: "✓";
+      color: #28a745;
+      position: absolute;
+      left: 0;
+      top: 5px;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #6772e5;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      margin-right: 10px;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn:hover {
+      background-color: #5469d4;
+    }
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .alert-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .hidden {
+      display: none;
+    }
+    .customer-form {
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .customer-info {
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>サブスクリプション検証</h1>
+  <p><a href="/" class="btn">ホームに戻る</a></p>
+  
+  <!-- メッセージ表示エリア -->
+  <div id="message" class="alert hidden"></div>
+  
+  <!-- 顧客情報 -->
+  <div id="customerInfo" class="customer-info hidden">
+    <h2>顧客情報</h2>
+    <p><strong>顧客ID:</strong> <span id="customerId"></span></p>
+    <p><strong>メールアドレス:</strong> <span id="customerEmail"></span></p>
+    <div>
+      <button id="manageSubscriptionBtn" class="btn">サブスクリプション管理</button>
+      <button id="clearCustomerBtn" class="btn">顧客情報をクリア</button>
+    </div>
+  </div>
+  
+  <!-- 顧客登録フォーム -->
+  <div id="customerForm" class="card">
+    <h2>顧客情報登録</h2>
+    <div class="form-group">
+      <label for="name">名前</label>
+      <input type="text" id="name" placeholder="例: 山田太郎">
+    </div>
+    <div class="form-group">
+      <label for="email">メールアドレス</label>
+      <input type="email" id="email" placeholder="例: example@example.com">
+    </div>
+    <div class="form-group">
+      <button id="registerCustomerBtn" class="btn">顧客情報を登録</button>
+    </div>
+  </div>
+  
+  <!-- プラン一覧 -->
+  <h2>利用可能なプラン</h2>
+  <div class="plans" id="plansList">
+    <!-- プランは動的に追加されます -->
+    <div class="plan">
+      <p>プランを読み込み中...</p>
+    </div>
+  </div>
+
+  <script>
+    // APIのベースURL（実際の環境に合わせて変更）
+    const API_BASE_URL = 'http://localhost:8787';
+    
+    // DOMが読み込まれたら実行
+    document.addEventListener('DOMContentLoaded', () => {
+      // 要素の参照を取得
+      const messageDiv = document.getElementById('message');
+      const customerInfoDiv = document.getElementById('customerInfo');
+      const customerFormDiv = document.getElementById('customerForm');
+      const customerIdSpan = document.getElementById('customerId');
+      const customerEmailSpan = document.getElementById('customerEmail');
+      const manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
+      const clearCustomerBtn = document.getElementById('clearCustomerBtn');
+      const registerCustomerBtn = document.getElementById('registerCustomerBtn');
+      const plansListDiv = document.getElementById('plansList');
+      
+      // ローカルストレージから顧客情報を取得
+      const customerId = localStorage.getItem('stripeCustomerId');
+      const customerEmail = localStorage.getItem('stripeCustomerEmail');
+      
+      // 顧客情報があれば表示
+      if (customerId) {
+        showCustomerInfo(customerId, customerEmail);
+      } else {
+        showCustomerForm();
+      }
+      
+      // プランデータを取得して表示
+      fetchPlans();
+      
+      // 顧客登録ボタンのイベントリスナー
+      registerCustomerBtn.addEventListener('click', async () => {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        
+        if (!email) {
+          showMessage('メールアドレスを入力してください', 'danger');
+          return;
+        }
+        
+        try {
+          // 顧客作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/subscription/create-customer`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || '顧客登録に失敗しました');
+          }
+          
+          // 顧客情報を保存
+          localStorage.setItem('stripeCustomerId', data.customerId);
+          localStorage.setItem('stripeCustomerEmail', email);
+          
+          // 顧客情報を表示
+          showCustomerInfo(data.customerId, email);
+          showMessage('顧客情報が登録されました', 'success');
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      });
+      
+      // 管理ボタンのイベントリスナー
+      manageSubscriptionBtn.addEventListener('click', async () => {
+        try {
+          // 顧客ポータル作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/subscription/create-portal`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ customerId }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || '顧客ポータルの作成に失敗しました');
+          }
+          
+          // 顧客ポータルにリダイレクト
+          window.location.href = data.url;
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      });
+      
+      // クリアボタンのイベントリスナー
+      clearCustomerBtn.addEventListener('click', () => {
+        localStorage.removeItem('stripeCustomerId');
+        localStorage.removeItem('stripeCustomerEmail');
+        showCustomerForm();
+        showMessage('顧客情報をクリアしました', 'success');
+      });
+      
+      // 顧客情報を表示
+      function showCustomerInfo(id, email) {
+        customerInfoDiv.classList.remove('hidden');
+        customerFormDiv.classList.add('hidden');
+        customerIdSpan.textContent = id;
+        customerEmailSpan.textContent = email;
+      }
+      
+      // 顧客フォームを表示
+      function showCustomerForm() {
+        customerInfoDiv.classList.add('hidden');
+        customerFormDiv.classList.remove('hidden');
+      }
+      
+      // プランを取得して表示
+      async function fetchPlans() {
+        try {
+          // プラン取得APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/subscription/plans`);
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'プランの取得に失敗しました');
+          }
+          
+          // プランリストをクリア
+          plansListDiv.innerHTML = '';
+          
+          // プランを表示
+          data.plans.forEach(plan => {
+            const planDiv = document.createElement('div');
+            planDiv.className = 'plan';
+            
+            // 機能リストを作成
+            const featuresList = plan.features.map(feature => `<li>${feature}</li>`).join('');
+            
+            planDiv.innerHTML = `
+              <h3>${plan.name}</h3>
+              <div class="plan-description">${plan.description}</div>
+              <div class="plan-price">¥${plan.price.toLocaleString()}</div>
+              <div class="plan-interval">${plan.interval === 'month' ? '月額' : '年額'}</div>
+              <ul class="features">
+                ${featuresList}
+              </ul>
+              <button class="btn subscribe-btn" data-id="${plan.id}">
+                サブスクリプションを開始
+              </button>
+            `;
+            
+            plansListDiv.appendChild(planDiv);
+          });
+          
+          // サブスクリプションボタンにイベントリスナーを追加
+          document.querySelectorAll('.subscribe-btn').forEach(button => {
+            button.addEventListener('click', handleSubscribe);
+          });
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      }
+      
+      // サブスクリプションボタンのイベントハンドラ
+      async function handleSubscribe(event) {
+        // 顧客IDの確認
+        if (!customerId) {
+          showMessage('サブスクリプションを開始するには、まず顧客情報を登録してください', 'info');
+          return;
+        }
+        
+        const button = event.target;
+        const priceId = button.dataset.id;
+        
+        try {
+          // サブスクリプション作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/subscription/create-subscription`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              customerId,
+              priceId,
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'サブスクリプションの作成に失敗しました');
+          }
+          
+          // Stripeのチェックアウトページにリダイレクト
+          window.location.href = data.url;
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      }
+      
+      // メッセージを表示
+      function showMessage(text, type) {
+        messageDiv.textContent = text;
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.classList.remove('hidden');
+        
+        // 3秒後に消す
+        setTimeout(() => {
+          messageDiv.classList.add('hidden');
+        }, 3000);
+      }
+      
+      // URLパラメータを取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      
+      // セッションIDがあれば購入完了の処理
+      if (sessionId) {
+        showMessage('サブスクリプションが開始されました！', 'success');
+      }
+    });
+  </script>
+</body>
+</html>

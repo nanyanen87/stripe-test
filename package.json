@@ -1,0 +1,17 @@
+{
+  "name": "stripe-test",
+  "version": "0.1.0",
+  "description": "Stripe API検証用モデルサービス",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "stripe": "^13.7.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.15.0"
+  }
+}

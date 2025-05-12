@@ -1,0 +1,19 @@
+name = "stripe-test"
+main = "src/index.js"
+compatibility_date = "2023-09-01"
+
+[vars]
+BASE_URL = "http://localhost:8787"
+
+# Stripeシークレット変数はwrangler secretで設定
+# wrangler secret put STRIPE_SECRET_KEY
+# wrangler secret put STRIPE_WEBHOOK_SECRET
+# wrangler secret put STRIPE_CONNECT_CLIENT_ID
+
+[env.production]
+vars = { BASE_URL = "https://your-production-url.com" }
+
+# 新しいワーカー設定形式では、ルーティングは単一のワーカーで処理します
+# そのため、以下のようにプロジェクト構造を調整しています：
+# - すべてのリクエストは src/index.js で処理
+# - index.js 内部でパスに基づいて適切なハンドラー関数を呼び出す

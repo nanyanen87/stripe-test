@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>販売者登録 - Stripe 検証サービス</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    h2 { color: #555; margin-top: 30px; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="email"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #6772e5;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #5469d4;
+    }
+    .btn-link {
+      display: inline-block;
+      background-color: #6772e5;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      text-decoration: none;
+      margin-right: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-enabled {
+      background-color: #28a745;
+    }
+    .status-disabled {
+      background-color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <h1>販売者機能検証</h1>
+  <p><a href="/" class="btn-link">ホームに戻る</a></p>
+  
+  <!-- 既存アカウント情報 -->
+  <div id="existingAccount" class="card hidden">
+    <h2>既存の販売者アカウント</h2>
+    <div id="accountDetails">
+      <p><strong>アカウントID:</strong> <span id="accountId"></span></p>
+      <p>
+        <strong>オンボーディング完了:</strong> 
+        <span class="status-indicator" id="detailsSubmittedIndicator"></span>
+        <span id="detailsSubmitted"></span>
+      </p>
+      <p>
+        <strong>決済有効:</strong> 
+        <span class="status-indicator" id="chargesEnabledIndicator"></span>
+        <span id="chargesEnabled"></span>
+      </p>
+      <p>
+        <strong>支払い有効:</strong> 
+        <span class="status-indicator" id="payoutsEnabledIndicator"></span>
+        <span id="payoutsEnabled"></span>
+      </p>
+    </div>
+    <div class="form-group">
+      <button id="dashboardBtn">Stripeダッシュボードを開く</button>
+      <button id="onboardingBtn">オンボーディングを続ける</button>
+      <button id="clearAccountBtn">アカウント情報をクリア</button>
+    </div>
+  </div>
+  
+  <!-- 新規アカウント登録フォーム -->
+  <div id="registerForm" class="card">
+    <h2>新規販売者登録</h2>
+    <div class="form-group">
+      <label for="name">名前</label>
+      <input type="text" id="name" placeholder="例: 山田太郎">
+    </div>
+    <div class="form-group">
+      <label for="email">メールアドレス</label>
+      <input type="email" id="email" placeholder="例: example@example.com">
+    </div>
+    <div class="form-group">
+      <button id="registerBtn">アカウント作成</button>
+    </div>
+  </div>
+
+  <!-- メッセージ表示エリア -->
+  <div id="message" class="alert hidden"></div>
+
+  <script>
+    // APIのベースURL（実際の環境に合わせて変更）
+    const API_BASE_URL = 'http://localhost:8787';
+    
+    // DOMが読み込まれたら実行
+    document.addEventListener('DOMContentLoaded', () => {
+      // 要素の参照を取得
+      const existingAccountDiv = document.getElementById('existingAccount');
+      const registerFormDiv = document.getElementById('registerForm');
+      const messageDiv = document.getElementById('message');
+      
+      const accountIdSpan = document.getElementById('accountId');
+      const detailsSubmittedSpan = document.getElementById('detailsSubmitted');
+      const detailsSubmittedIndicator = document.getElementById('detailsSubmittedIndicator');
+      const chargesEnabledSpan = document.getElementById('chargesEnabled');
+      const chargesEnabledIndicator = document.getElementById('chargesEnabledIndicator');
+      const payoutsEnabledSpan = document.getElementById('payoutsEnabled');
+      const payoutsEnabledIndicator = document.getElementById('payoutsEnabledIndicator');
+      
+      const registerBtn = document.getElementById('registerBtn');
+      const dashboardBtn = document.getElementById('dashboardBtn');
+      const onboardingBtn = document.getElementById('onboardingBtn');
+      const clearAccountBtn = document.getElementById('clearAccountBtn');
+      
+      // ローカルストレージからアカウント情報を取得
+      const accountId = localStorage.getItem('stripeConnectAccountId');
+      
+      // アカウント情報があれば表示
+      if (accountId) {
+        showExistingAccount();
+        fetchAccountStatus(accountId);
+      } else {
+        showRegistrationForm();
+      }
+      
+      // 登録ボタンのイベントリスナー
+      registerBtn.addEventListener('click', async () => {
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        
+        if (!email) {
+          showMessage('メールアドレスを入力してください', 'danger');
+          return;
+        }
+        
+        try {
+          // アカウント作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/create-account`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'アカウント作成に失敗しました');
+          }
+          
+          // アカウントIDを保存
+          localStorage.setItem('stripeConnectAccountId', data.accountId);
+          
+          // アカウント情報を表示
+          showExistingAccount();
+          updateAccountStatus(data);
+          
+          // オンボーディングを続ける
+          createAccountLink(data.accountId);
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      });
+      
+      // ダッシュボードボタンのイベントリスナー
+      dashboardBtn.addEventListener('click', async () => {
+        try {
+          // ログインリンク作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/create-login-link`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ accountId }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'ログインリンクの作成に失敗しました');
+          }
+          
+          // ダッシュボードを新しいタブで開く
+          window.open(data.url, '_blank');
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      });
+      
+      // オンボーディングボタンのイベントリスナー
+      onboardingBtn.addEventListener('click', () => {
+        createAccountLink(accountId);
+      });
+      
+      // クリアボタンのイベントリスナー
+      clearAccountBtn.addEventListener('click', () => {
+        localStorage.removeItem('stripeConnectAccountId');
+        showRegistrationForm();
+        showMessage('アカウント情報をクリアしました', 'success');
+      });
+      
+      // 既存アカウント情報を表示
+      function showExistingAccount() {
+        existingAccountDiv.classList.remove('hidden');
+        registerFormDiv.classList.add('hidden');
+        accountIdSpan.textContent = accountId;
+      }
+      
+      // 登録フォームを表示
+      function showRegistrationForm() {
+        existingAccountDiv.classList.add('hidden');
+        registerFormDiv.classList.remove('hidden');
+      }
+      
+      // メッセージを表示
+      function showMessage(text, type) {
+        messageDiv.textContent = text;
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.classList.remove('hidden');
+        
+        // 3秒後に消す
+        setTimeout(() => {
+          messageDiv.classList.add('hidden');
+        }, 3000);
+      }
+      
+      // アカウント状態を取得
+      async function fetchAccountStatus(accountId) {
+        try {
+          // アカウント状態取得APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/account-status?accountId=${accountId}`);
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'アカウント状態の取得に失敗しました');
+          }
+          
+          // アカウント状態を更新
+          updateAccountStatus(data);
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      }
+      
+      // アカウント状態表示を更新
+      function updateAccountStatus(data) {
+        detailsSubmittedSpan.textContent = data.details_submitted ? '完了' : '未完了';
+        detailsSubmittedIndicator.className = `status-indicator ${data.details_submitted ? 'status-enabled' : 'status-disabled'}`;
+        
+        chargesEnabledSpan.textContent = data.charges_enabled ? '有効' : '無効';
+        chargesEnabledIndicator.className = `status-indicator ${data.charges_enabled ? 'status-enabled' : 'status-disabled'}`;
+        
+        payoutsEnabledSpan.textContent = data.payouts_enabled ? '有効' : '無効';
+        payoutsEnabledIndicator.className = `status-indicator ${data.payouts_enabled ? 'status-enabled' : 'status-disabled'}`;
+      }
+      
+      // アカウントリンクを作成してリダイレクト
+      async function createAccountLink(accountId) {
+        try {
+          // アカウントリンク作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/create-account-link`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ accountId }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'アカウントリンクの作成に失敗しました');
+          }
+          
+          // オンボーディングページにリダイレクト
+          window.location.href = data.url;
+          
+        } catch (error) {
+          showMessage(error.message, 'danger');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

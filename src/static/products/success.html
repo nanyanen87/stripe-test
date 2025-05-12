@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>購入完了 - Stripe 検証サービス</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    h2 { color: #555; margin-top: 30px; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .success-icon {
+      text-align: center;
+      font-size: 4em;
+      color: #28a745;
+      margin-bottom: 20px;
+    }
+    .details {
+      margin-top: 30px;
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .details dl {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 10px;
+    }
+    .details dt {
+      font-weight: bold;
+      color: #555;
+    }
+    .details dd {
+      margin: 0;
+      color: #333;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #6772e5;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      text-decoration: none;
+      margin-right: 10px;
+    }
+    .btn:hover {
+      background-color: #5469d4;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="success-icon">✓</div>
+    <h1>購入が完了しました！</h1>
+    <p>ご購入ありがとうございます。商品の購入が正常に完了しました。</p>
+    
+    <div id="details" class="details hidden">
+      <h2>購入詳細</h2>
+      <dl>
+        <dt>セッションID</dt>
+        <dd id="sessionId">-</dd>
+        
+        <dt>商品名</dt>
+        <dd id="productName">-</dd>
+        
+        <dt>金額</dt>
+        <dd id="amount">-</dd>
+        
+        <dt>支払い状態</dt>
+        <dd id="paymentStatus">-</dd>
+      </dl>
+    </div>
+    
+    <p>
+      <a href="/products/" class="btn">商品一覧に戻る</a>
+      <a href="/" class="btn">ホームに戻る</a>
+    </p>
+  </div>
+
+  <script>
+    // APIのベースURL（実際の環境に合わせて変更）
+    const API_BASE_URL = 'http://localhost:8787';
+    
+    // DOMが読み込まれたら実行
+    document.addEventListener('DOMContentLoaded', () => {
+      // URLパラメータを取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      
+      if (sessionId) {
+        // セッション情報を表示
+        document.getElementById('sessionId').textContent = sessionId;
+        
+        // セッション情報を取得
+        fetchSessionDetails(sessionId);
+      }
+    });
+    
+    // セッション詳細を取得
+    async function fetchSessionDetails(sessionId) {
+      try {
+        // セッションステータス取得APIを呼び出し
+        const response = await fetch(`${API_BASE_URL}/api/products/checkout-status?sessionId=${sessionId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error('セッション詳細の取得に失敗しました:', data.error);
+          return;
+        }
+        
+        // 詳細を表示
+        document.getElementById('details').classList.remove('hidden');
+        
+        if (data.lineItems && data.lineItems.data.length > 0) {
+          document.getElementById('productName').textContent = data.lineItems.data[0].description;
+        }
+        
+        document.getElementById('amount').textContent = `¥${data.amountTotal.toLocaleString()}`;
+        document.getElementById('paymentStatus').textContent = translatePaymentStatus(data.paymentStatus);
+        
+      } catch (error) {
+        console.error('セッション詳細の取得中にエラーが発生しました:', error);
+      }
+    }
+    
+    // 支払いステータスを日本語に変換
+    function translatePaymentStatus(status) {
+      const statusMap = {
+        'paid': '支払い完了',
+        'unpaid': '未払い',
+        'no_payment_required': '支払い不要',
+        'pending': '処理中'
+      };
+      
+      return statusMap[status] || status;
+    }
+  </script>
+</body>
+</html>
