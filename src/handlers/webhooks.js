@@ -7,7 +7,7 @@ import { initStripeFromEnv, verifyWebhookSignature, createSuccessResponse, creat
  * @param {Object} env - 環境変数
  * @return {Promise<Response>} レスポンス
  */
-export default {
+const handler = {
   async fetch(request, env) {
     // POSTメソッド以外は受け付けない
     if (request.method !== 'POST') {
@@ -69,6 +69,8 @@ export default {
     }
   }
 };
+
+export default handler;
 
 /**
  * checkout.session.completed イベントの処理
@@ -204,5 +206,5 @@ async function handleAccountUpdated(account, env, stripe) {
 
 export async function handleWebhooks(request, env, ctx) {
   // ctxは未使用ですが、index.jsの呼び出しに合わせて追加
-  return await exports.default.fetch(request, env);
+  return await handler.fetch(request, env);
 }

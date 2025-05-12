@@ -10,10 +10,13 @@ BASE_URL = "http://localhost:8787"
 # wrangler secret put STRIPE_WEBHOOK_SECRET
 # wrangler secret put STRIPE_CONNECT_CLIENT_ID
 
-[env.production]
-vars = { BASE_URL = "https://your-production-url.com" }
+[env.dev]
+vars = { BASE_URL = "https://your-dev-url.com" }
 
 # 新しいワーカー設定形式では、ルーティングは単一のワーカーで処理します
 # そのため、以下のようにプロジェクト構造を調整しています：
 # - すべてのリクエストは src/index.js で処理
 # - index.js 内部でパスに基づいて適切なハンドラー関数を呼び出す
+
+[site]
+bucket = "./public"

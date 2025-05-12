@@ -7,7 +7,7 @@ import { initStripeFromEnv, createSuccessResponse, createErrorResponse } from '.
  * @param {Object} env - 環境変数
  * @return {Promise<Response>} レスポンス
  */
-export default {
+const handler = {
   async fetch(request, env) {
     // CORSヘッダーを設定
     if (request.method === 'OPTIONS') {
@@ -169,7 +169,7 @@ async function getMockProducts() {
   });
 }
 
+export default handler;
 export async function handleProductRequests(request, env, ctx) {
-  // ctxは未使用ですが、index.jsの呼び出しに合わせて追加
-  return await exports.default.fetch(request, env);
+  return await handler.fetch(request, env);
 }
