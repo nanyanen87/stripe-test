@@ -68,7 +68,7 @@ wrangler secret put STRIPE_CONNECT_CLIENT_ID
 1. Stripeダッシュボードで「Connect」→「設定」を選択
 2. 「Connectアプリケーション」で「新しいアプリケーションを作成」をクリック
 3. 以下の設定を行う：
-   - 名前: 任意（例: Stremix Test）
+   - 名前: 任意（例: stripe subscription Test）
    - リダイレクトURI: `http://localhost:8787/connect/dashboard`
    - ブランディング: 任意
 4. 「作成」をクリック

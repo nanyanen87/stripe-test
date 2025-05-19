@@ -56,7 +56,7 @@ async function createConnectAccount(request, env, stripe) {
       transfers: { requested: true },
     },
     business_profile: {
-      name: name || 'Stremix Seller',
+      name: name || 'Stripe Seller',
       url: `${env.BASE_URL}/connect/seller`,
     },
   });
