@@ -137,6 +137,7 @@ async function createCustomerPortal(request, env, stripe) {
   });
 }
 
+
 /**
  * サブスクリプションプランの一覧を取得
  * @param {Object} env - 環境変数
@@ -144,41 +145,49 @@ async function createCustomerPortal(request, env, stripe) {
  * @return {Promise<Response>} レスポンス
  */
 async function getSubscriptionPlans(env, stripe) {
-  // 注意: このメソッドは実際のStripeプランを取得するようにカスタマイズする必要があります
-  // ここではモックデータを返しています
-  
-  // モックプランデータ（実際の実装では、Stripeから取得したプランを返す）
-  const plans = [
-    {
-      id: 'plan_standard',
-      name: 'リミックス スタンダード',
-      description: '基本的なリミックス機能が利用可能なプラン',
-      price: 980,
-      interval: 'month',
-      features: [
-        '基本的なリミックス機能',
-        'オフライン再生',
-        '標準音質',
-      ],
-    },
-    {
-      id: 'plan_premium',
-      name: 'リミックス プレミアム',
-      description: 'すべてのリミックス機能が利用可能な上位プラン',
-      price: 1980,
-      interval: 'month',
-      features: [
-        'すべてのリミックス機能',
-        'オフライン再生',
-        '高音質',
-        'プライオリティサポート',
-      ],
-    },
-  ];
-  
-  return createSuccessResponse({
-    plans,
-  });
+  try {
+    // Stripeから実際の価格リストを取得
+    const prices = await stripe.prices.list({
+      active: true,
+      type: 'recurring',
+      limit: 100,
+      expand: ['data.product']
+    });
+
+    // 価格が見つからない場合
+    if (prices.data.length === 0) {
+      return createErrorResponse('サブスクリプションプランが見つかりません。Stripeダッシュボードで商品と価格を作成してください。');
+    }
+
+    // Stripeの価格情報から必要な形式にマッピング
+    const plans = prices.data.map(price => {
+      const product = price.product;
+      // 商品のメタデータから機能リストを取得（もし設定されていれば）
+      const features = [];
+      if (product.metadata && product.metadata.features) {
+        features.push(...product.metadata.features.split(',').map(f => f.trim()));
+      } else {
+        // デフォルトの機能リスト
+        features.push('基本機能');
+      }
+
+      return {
+        id: price.id,
+        name: product.name,
+        description: product.description || '詳細情報はありません',
+        price: price.unit_amount,
+        interval: price.recurring.interval,
+        features: features
+      };
+    });
+
+    return createSuccessResponse({
+      plans,
+    });
+  } catch (error) {
+    console.error('Error fetching plans from Stripe:', error);
+    return createErrorResponse('プランの取得中にエラーが発生しました: ' + error.message);
+  }
 }
 
 export default handler;

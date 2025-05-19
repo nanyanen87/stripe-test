@@ -347,6 +347,7 @@
       
       // サブスクリプションボタンのイベントハンドラ
       async function handleSubscribe(event) {
+        const customerId = localStorage.getItem('stripeCustomerId');
         // 顧客IDの確認
         if (!customerId) {
           showMessage('サブスクリプションを開始するには、まず顧客情報を登録してください', 'info');
