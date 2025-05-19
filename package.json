@@ -4,7 +4,7 @@
   "description": "Stripe API検証用モデルサービス",
   "main": "src/index.js",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "npx wrangler dev --assets ./public",
     "deploy": "wrangler deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +12,6 @@
     "stripe": "^13.7.0"
   },
   "devDependencies": {
-    "wrangler": "^3.15.0"
+    "wrangler": "^4.10.0"
   }
 }

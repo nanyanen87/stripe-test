@@ -18,5 +18,8 @@ vars = { BASE_URL = "https://your-dev-url.com" }
 # - すべてのリクエストは src/index.js で処理
 # - index.js 内部でパスに基づいて適切なハンドラー関数を呼び出す
 
-[site]
-bucket = "./public"
+# [site]
+# bucket = "./public"
+
+# [miniflare]
+# site_path = "./public"
