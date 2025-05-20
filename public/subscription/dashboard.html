@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>販売者ダッシュボード - Stripe 検証サービス</title>
+  <link rel="stylesheet" href="/css/connect-dashboard.css">
+</head>
+<body>
+  <div class="success-banner">
+    <div class="success-icon">✓</div>
+    <h1>オンボーディングが完了しました！</h1>
+    <p>Stripe Connect アカウントの設定が完了しました。これからプラットフォーム上での販売を開始できます。</p>
+  </div>
+  
+  <div class="card">
+    <h2>アカウント状態</h2>
+    <div id="accountDetails">
+      <p><strong>アカウントID:</strong> <span id="accountId">読み込み中...</span></p>
+      <p>
+        <strong>オンボーディング完了:</strong> 
+        <span class="status-indicator status-enabled" id="detailsSubmittedIndicator"></span>
+        <span id="detailsSubmitted">完了</span>
+      </p>
+      <p>
+        <strong>決済有効:</strong> 
+        <span class="status-indicator" id="chargesEnabledIndicator"></span>
+        <span id="chargesEnabled">確認中...</span>
+      </p>
+      <p>
+        <strong>支払い有効:</strong> 
+        <span class="status-indicator" id="payoutsEnabledIndicator"></span>
+        <span id="payoutsEnabled">確認中...</span>
+      </p>
+    </div>
+    
+    <div class="account-summary">
+      <div class="stat-card">
+        <div class="stat-number">¥0</div>
+        <div class="stat-label">累計売上</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">累計販売数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">¥0</div>
+        <div class="stat-label">未振込金額</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 20px;">
+      <a href="#" class="btn" id="dashboardBtn">Stripeダッシュボードを開く</a>
+      <a href="/connect/" class="btn btn-secondary">Connect 管理に戻る</a>
+    </div>
+  </div>
+  
+  <div class="content-section">
+    <h2>次のステップ</h2>
+    <div class="alert alert-info">
+      <p>これはStripe Connect機能の検証環境です。実際のアプリケーションでは、以下のようなステップが続きます：</p>
+    </div>
+    
+    <ol class="next-steps-list">
+      <li><strong>販売者プロフィールを設定する</strong> - あなたのプラットフォーム上での公開プロフィールを作成します</li>
+      <li><strong>商品を登録する</strong> - 販売したい商品やサービスの情報を登録します</li>
+      <li><strong>販売を開始する</strong> - プラットフォーム上で商品の販売を開始し、収益を得ることができます</li>
+      <li><strong>分析データを確認する</strong> - 売上や顧客データを分析して、販売戦略を最適化します</li>
+    </ol>
+    
+    <p>この検証環境では、以下の操作をテストできます：</p>
+    <ul>
+      <li>Stripeダッシュボードへのアクセス</li>
+      <li>Connect アカウント情報の確認</li>
+      <li>商品ページでこのConnect アカウントを使用した分割決済</li>
+    </ul>
+  </div>
+
+  <script>
+    // APIのベースURL
+    const API_BASE_URL = window.location.origin;
+    
+    // DOMが読み込まれたら実行
+    document.addEventListener('DOMContentLoaded', () => {
+      // 要素の参照を取得
+      const accountIdSpan = document.getElementById('accountId');
+      const detailsSubmittedSpan = document.getElementById('detailsSubmitted');
+      const detailsSubmittedIndicator = document.getElementById('detailsSubmittedIndicator');
+      const chargesEnabledSpan = document.getElementById('chargesEnabled');
+      const chargesEnabledIndicator = document.getElementById('chargesEnabledIndicator');
+      const payoutsEnabledSpan = document.getElementById('payoutsEnabled');
+      const payoutsEnabledIndicator = document.getElementById('payoutsEnabledIndicator');
+      const dashboardBtn = document.getElementById('dashboardBtn');
+      
+      // ローカルストレージからアカウント情報を取得
+      const accountId = localStorage.getItem('stripeConnectAccountId');
+      
+      // アカウントIDを表示
+      if (accountId) {
+        accountIdSpan.textContent = accountId;
+        // アカウント状態を取得
+        fetchAccountStatus(accountId);
+      } else {
+        accountIdSpan.textContent = '情報なし';
+        // Connect ページにリダイレクト
+        window.location.href = '/connect/';
+      }
+      
+      // ダッシュボードボタンのイベントリスナー
+      dashboardBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
+        
+        try {
+          // ログインリンク作成APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/create-login-link`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ accountId }),
+          });
+          
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'ログインリンクの作成に失敗しました');
+          }
+          
+          // ダッシュボードを新しいタブで開く
+          window.open(data.url, '_blank');
+          
+        } catch (error) {
+          console.error('ダッシュボードリンク作成エラー:', error);
+          alert('Stripeダッシュボードを開けませんでした: ' + error.message);
+        }
+      });
+      
+      // アカウント状態を取得
+      async function fetchAccountStatus(accountId) {
+        try {
+          // アカウント状態取得APIを呼び出し
+          const response = await fetch(`${API_BASE_URL}/api/connect/account-status?accountId=${accountId}`);
+          const data = await response.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || 'アカウント状態の取得に失敗しました');
+          }
+          
+          // アカウント状態を更新
+          updateAccountStatus(data);
+          
+        } catch (error) {
+          console.error('アカウント状態取得エラー:', error);
+          // エラー時の表示
+          detailsSubmittedSpan.textContent = 'エラー';
+          chargesEnabledSpan.textContent = 'エラー';
+          payoutsEnabledSpan.textContent = 'エラー';
+        }
+      }
+      
+      // アカウント状態表示を更新
+      function updateAccountStatus(data) {
+        detailsSubmittedSpan.textContent = data.details_submitted ? '完了' : '未完了';
+        detailsSubmittedIndicator.className = `status-indicator ${data.details_submitted ? 'status-enabled' : 'status-disabled'}`;
+        
+        chargesEnabledSpan.textContent = data.charges_enabled ? '有効' : '無効';
+        chargesEnabledIndicator.className = `status-indicator ${data.charges_enabled ? 'status-enabled' : 'status-disabled'}`;
+        
+        payoutsEnabledSpan.textContent = data.payouts_enabled ? '有効' : '無効';
+        payoutsEnabledIndicator.className = `status-indicator ${data.payouts_enabled ? 'status-enabled' : 'status-disabled'}`;
+      }
+    });
+  </script>
+</body>
+</html>
