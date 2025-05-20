@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe API テストサービス</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    header {
+      margin-bottom: 30px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+    h1 {
+      color: #6772e5;
+      margin-bottom: 10px;
+    }
+    .subheading {
+      color: #666;
+      font-weight: normal;
+      margin-top: 0;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 30px;
+      margin: 40px 0;
+    }
+    .feature-card {
+      border: 1px solid #e6e6e6;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+    }
+    .feature-icon {
+      background-color: #f7fafc;
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 30px;
+    }
+    .feature-title {
+      color: #6772e5;
+      margin: 0 0 15px 0;
+      font-size: 24px;
+    }
+    .feature-description {
+      color: #666;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #6772e5;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+      text-align: center;
+    }
+    .btn:hover {
+      background-color: #5469d4;
+    }
+    .env-status {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 40px 0;
+    }
+    .env-status h2 {
+      margin-top: 0;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    .status-pending {
+      background-color: #ffc107;
+    }
+    .status-success {
+      background-color: #28a745;
+    }
+    .status-error {
+      background-color: #dc3545;
+    }
+    .note-section {
+      margin-top: 50px;
+      padding: 20px;
+      background-color: #e9f7fe;
+      border-left: 5px solid #6772e5;
+      border-radius: 4px;
+    }
+    footer {
+      margin-top: 50px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Stripe API テストサービス</h1>
+    <h2 class="subheading">Stripe API 機能検証用モデルサービス</h2>
+  </header>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">💼</div>
+      <h3 class="feature-title">Connect 販売者管理</h3>
+      <div class="feature-description">
+        <p>Stripe Connect を使用して販売者アカウントを作成し、マルチベンダーのマーケットプレイスを構築する方法を検証します。</p>
+        <ul>
+          <li>Express アカウント作成</li>
+          <li>オンボーディングフロー</li>
+          <li>アカウント状態の確認</li>
+          <li>ダッシュボードアクセス</li>
+        </ul>
+      </div>
+      <a href="/connect/" class="btn">Connect 機能を試す</a>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🛒</div>
+      <h3 class="feature-title">商品購入 (Checkout)</h3>
+      <div class="feature-description">
+        <p>Stripe Checkout を使用して商品を購入し、販売者との収益分配を設定する方法を検証します。</p>
+        <ul>
+          <li>チェックアウトセッション作成</li>
+          <li>クレジットカード決済</li>
+          <li>販売者への収益分配</li>
+          <li>イベント処理</li>
+        </ul>
+      </div>
+      <a href="/products/" class="btn">商品購入機能を試す</a>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3 class="feature-title">サブスクリプション</h3>
+      <div class="feature-description">
+        <p>Stripe Billing を使用して定期課金システムを構築する方法を検証します。</p>
+        <ul>
+          <li>顧客作成</li>
+          <li>サブスクリプション開始</li>
+          <li>顧客ポータル</li>
+          <li>請求書と支払い</li>
+        </ul>
+      </div>
+      <a href="/subscription/" class="btn">サブスクリプション機能を試す</a>
+    </div>
+  </div>
+
+  <div class="env-status">
+    <h2>環境設定状態</h2>
+    <p>テスト前に以下の環境設定が必要です。Wrangler secretコマンドまたは.dev.varsファイルで設定してください。</p>
+    
+    <div class="status-item">
+      <span class="status-indicator status-pending" id="stripeKeyStatus"></span>
+      <span>STRIPE_SECRET_KEY - Stripe APIシークレットキー</span>
+    </div>
+    <div class="status-item">
+      <span class="status-indicator status-pending" id="webhookStatus"></span>
+      <span>STRIPE_WEBHOOK_SECRET - Webhookシークレット</span>
+    </div>
+    <div class="status-item">
+      <span class="status-indicator status-pending" id="connectStatus"></span>
+      <span>STRIPE_CONNECT_CLIENT_ID - Connect クライアントID</span>
+    </div>
+    
+    <button id="checkEnvBtn" class="btn" style="margin-top: 15px;">環境設定を確認</button>
+  </div>
+
+  <div class="note-section">
+    <h3>使用上の注意</h3>
+    <ul>
+      <li>このサービスはテスト用です。Stripeのテストモードで実行してください。</li>
+      <li>テストでは<strong>実際の支払いは発生しません</strong>。テストカード番号「4242 4242 4242 4242」を使用してください。</li>
+      <li>Webhookのテストには、ngrokなどのトンネリングサービスが必要です。</li>
+      <li>詳細な手順については、リポジトリの「test-procedure.md」を参照してください。</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>© 2025 Stripe API テストサービス - v0.1.0</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const checkEnvBtn = document.getElementById('checkEnvBtn');
+      const stripeKeyStatus = document.getElementById('stripeKeyStatus');
+      const webhookStatus = document.getElementById('webhookStatus');
+      const connectStatus = document.getElementById('connectStatus');
+      
+      // ローカル開発とデプロイのどちらでも動作するようにベースURLを検出
+      const getBaseUrl = () => {
+        return window.location.origin;
+      };
+      
+      // 環境変数確認ボタンのイベントリスナー
+      checkEnvBtn.addEventListener('click', async () => {
+        try {
+          const baseUrl = getBaseUrl();
+          // APIエンドポイントを呼び出して環境変数の設定状態を確認
+          const response = await fetch(`${baseUrl}/api/environment-check`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success) {
+              // APIレスポンスを基に状態表示を更新
+              updateStatus(stripeKeyStatus, data.stripeSecretKey);
+              updateStatus(webhookStatus, data.webhookSecret);
+              updateStatus(connectStatus, data.connectClientId);
+              
+              if (data.stripeSecretKey && data.webhookSecret && data.connectClientId) {
+                alert('✅ すべての環境変数が正しく設定されています。テスト準備完了です！');
+              } else {
+                alert('⚠️ 一部の環境変数が設定されていません。テストを開始する前に、wrangler secretコマンドまたは.dev.varsファイルで設定してください。');
+              }
+            } else {
+              alert(`⚠️ 環境変数確認中にエラーが発生しました: ${data.error}`);
+            }
+          } else {
+            // APIが利用できない場合はデフォルトの状態を表示
+            console.log('環境確認APIが利用できません。手動で確認してください。');
+            alert('環境確認APIが利用できません。.dev.varsファイルまたはwrangler secretコマンドで環境変数を設定してください。');
+          }
+        } catch (error) {
+          console.error('環境確認中にエラーが発生しました:', error);
+          alert('環境確認中にエラーが発生しました。コンソールを確認してください。');
+        }
+      });
+      
+      // 状態表示を更新する関数
+      function updateStatus(element, isSet) {
+        if (isSet) {
+          element.className = 'status-indicator status-success';
+        } else {
+          element.className = 'status-indicator status-error';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

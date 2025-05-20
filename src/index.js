@@ -3,7 +3,7 @@ import { handleConnectRequests } from './handlers/connect';
 import { handleProductRequests } from './handlers/products';
 import { handleSubscriptionRequests } from './handlers/subscription';
 import { handleWebhooks } from './handlers/webhooks';
-// static.js のインポートを削除
+import { handleEnvironmentCheck } from './handlers/environment';
 
 /**
  * リクエストルーティングとハンドリングを行うメインハンドラ
@@ -35,6 +35,8 @@ export default {
         return await handleSubscriptionRequests(request, env, ctx);
       } else if (path.startsWith('/webhooks/stripe')) {
         return await handleWebhooks(request, env, ctx);
+      } else if (path.startsWith('/api/environment-check')) {
+        return await handleEnvironmentCheck(request, env);
       }
       
       // 静的ファイルのリクエストはここまで到達しない

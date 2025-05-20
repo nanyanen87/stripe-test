@@ -111,8 +111,8 @@ async function createAccountLink(request, env, stripe) {
   
   const accountLink = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${env.BASE_URL}/connect/refresh`,
-    return_url: `${env.BASE_URL}/connect/dashboard`,
+    refresh_url: `${env.BASE_URL}/connect/`,
+    return_url: `${env.BASE_URL}/connect/`,
     type: 'account_onboarding',
   });
   
